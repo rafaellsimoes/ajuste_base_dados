@@ -1,0 +1,36 @@
+import pandas as pd
+import numpy as np
+
+
+bins = list(range(0, 85, 5)) + [100]
+rotulo = [f"{i}-{i+4}" for i in range(0, 80, 5)] + ["80+"]
+faixas_etarias = [f"{faixa} anos" for faixa in rotulo]
+
+censo_2010['faixa etaria'] = pd.cut(censo_2010['Idade'], bins=bins, labels=rotulo, right=False, include_lowest=True)
+censo_2010 = censo_2010.dropna(subset=['faixa etaria'])
+censo_2010 = censo_2010.groupby(['faixa etaria'], observed=True)[['populacao_total_homens', 'populacao_total_mulheres']].sum().reset_index()
+
+
+def carregar_e_processar_dados(caminho, coluna_populacao, regiao_brasil):
+    df = pd.read_csv(caminho, delimiter=';', encoding='latin1', low_memory=False)
+    df = df.ffill()
+    df = df[df['codigo_ibge'] != 'Fonte: IBGE - Censo Demográfico']
+    df = df.replace('-', '0')
+    df['Idade'] = df['Idade'].str.replace(' anos', '', regex=False).astype(int)
+    df['codigo_ibge'] = df['codigo_ibge'].astype(int)
+    df = df.rename(columns={'População residente (Pessoas)': coluna_populacao})
+    df[['localidade', 'uf']] = df['Brasil e Município'].str.extract(r"^(.*?)\s*\((.*?)\)$")
+    df = df.fillna({'localidade': 'Brasil', 'uf': 'BR'})
+    df['regiao'] = df['uf'].apply(regiao_brasil)
+    return df[['Ano', 'codigo_ibge', 'regiao', 'localidade', 'Idade', coluna_populacao]]
+
+def processar_dados_censo(caminho_total, caminho_homens, caminho_mulheres, regiao_brasil):
+    base_total = carregar_e_processar_dados(caminho_total, 'populacao_total', regiao_brasil)
+    base_homens = carregar_e_processar_dados(caminho_homens, 'populacao_total_homens', regiao_brasil)
+    base_mulheres = carregar_e_processar_dados(caminho_mulheres, 'populacao_total_mulheres', regiao_brasil)
+
+    # Mesclar as bases
+    base_geral = pd.merge(base_total, base_homens, on=['Ano', 'codigo_ibge', 'regiao', 'localidade', 'Idade'], how='left')
+    base_geral = pd.merge(base_geral, base_mulheres, on=['Ano', 'codigo_ibge', 'regiao', 'localidade', 'Idade'], how='left')
+    
+    return base_geral
