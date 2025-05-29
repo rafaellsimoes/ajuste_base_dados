@@ -1,0 +1,64 @@
+install.packages("httr")
+install.packages("jsonlite")
+install.packages("dplyr")
+install.packages("DBI")
+install.packages("RSQLite")
+install.packages("writexl")
+library(httr)
+library(jsonlite)
+library(dplyr)
+library(DBI)
+library(RSQLite)
+library(writexl)
+
+url_api <- "https://siops-consulta-publica-api.saude.gov.br/v1/ano-periodo"
+
+response <- GET(url_api)
+
+if (status_code(response) == 200){
+  dados<- content(response,"text",encoding = "UTF-8") %>%
+    fromJSON() %>%
+    as.data.frame()
+}
+caminho_xlsx <- "C:/Users/rafaeloliveira/Documents/Dados/siops_ano_periodo.xlsx"
+
+write_xlsx(dados, caminho_xlsx)
+
+
+url_estados <- "https://siops-consulta-publica-api.saude.gov.br/v1/ente/estados"
+
+r1 <- GET(url_estados)
+
+if (status_code(r1) == 200){
+  dados <- content(r1,"text",encoding = "UTF-8") %>%
+    fromJSON() %>%
+    as.data.frame()
+}
+c1 <- "C:/Users/rafaeloliveira/Documents/Dados/entes_estaduais.xlsx"
+
+write_xlsx(dados, c1)
+
+url_cidades_mt <- "https://siops-consulta-publica-api.saude.gov.br/v1/ente/municipal/51"
+
+r2 <- GET(url_cidades_mt)
+
+if (status_code(r2) == 200){
+  dados <- content(r2,"text",encoding = "UTF-8") %>%
+    fromJSON() %>%
+    as.data.frame()
+}
+
+c2 <- "C:/Users/rafaeloliveira/Documents/Dados/dados_cidades_mt.xlsx"
+write_xlsx(dados,c2)
+
+url_saude_und <- "https://apidadosabertos.saude.gov.br/cnes/tipounidades"
+r3 <- GET(url_saude_und)
+
+if (status_code(r3) == 200){
+  dados <- content(r3,"text",encoding = "UTF-8") %>%
+    fromJSON() %>%
+    as.data.frame()
+}
+
+c3 <- "C:/Users/rafaeloliveira/Documents/Dados/unidades_saude.xlsx"
+write_xlsx(dados,c3)
